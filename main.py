@@ -1,48 +1,42 @@
-"""Charm the Commuter: Forecast a City That Isn't — make.fun entry.
+#!/usr/bin/env python3
+"""Charm the Commuter: Forecast a City That Isn't.
 
-Writes one original one-line weather forecast (at most 140 characters)
-for a fictional city to $MAKEFUN_OUTPUT_DIR/entry.txt (falling back to
-/output), validates the length and that it is a single non-blank line,
-and exits 0. Deterministic: the same line every run. Standard library
-only; no network, no arguments.
+Writes one line of weather forecast (at most 140 characters) for the
+invented city of Mizzleford to ``entry.txt`` in the output directory.
+
+The grader runs this as ``python3 -P -s /bot/main.py`` with no network,
+``MAKEFUN_OUTPUT_DIR`` set to ``/output``. The program is fully
+deterministic: a fixed string, no clock, no randomness, no network, no
+input files. It refuses to write an entry that would fail the gate
+(1-140 characters, one line, not only whitespace) instead of emitting
+an invalid file.
 """
 
 import os
 import sys
 
 FORECAST = (
-    "Drizzlewick: light rain till noon, umbrellas up, spirits up "
-    "\u2014 the 8:04 bus is late again, but every puddle applauds you "
-    "for showing up."
+    "Good morning, Mizzleford: rain easing by 8, 12\u00b0C, buses ten "
+    "minutes late as usual, but the sun clocks in at noon, right on "
+    "time for once."
 )
 
 
 def main() -> int:
-    line = FORECAST
-    if line != line.strip() or "  " in line:
-        print("error: forecast has stray whitespace", file=sys.stderr)
-        return 1
-    if "\n" in line or "\r" in line:
-        print("error: forecast must be a single line", file=sys.stderr)
-        return 1
-    if not (1 <= len(line) <= 140):
-        print(f"error: forecast must be 1-140 characters, got {len(line)}",
+    # Gate check: the sealed scorer only judges entry.txt when it is
+    # UTF-8 text of 1 to 140 characters, one line, not only whitespace.
+    if not 1 <= len(FORECAST) <= 140:
+        print(f"forecast is {len(FORECAST)} characters, must be 1-140",
               file=sys.stderr)
         return 1
-
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
+    if "\n" in FORECAST or not FORECAST.strip():
+        print("forecast must be a single non-blank line", file=sys.stderr)
+        return 1
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "entry.txt")
-    with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(line + "\n")
-
-    with open(path, "r", encoding="utf-8") as f:
-        written = f.read()
-    if written != line + "\n":
-        print("error: read-back verification failed", file=sys.stderr)
-        return 1
-
-    print(f"Wrote forecast to {path} ({len(line)} chars): {line}")
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        handle.write(FORECAST)
     return 0
 
 
